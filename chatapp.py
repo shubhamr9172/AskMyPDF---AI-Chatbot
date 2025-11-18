@@ -16,7 +16,9 @@ from pathlib import Path
 
 # Load environment variables
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))  # Using free API key
+# Note: genai.configure() is often unnecessary when using the LangChain wrapper,
+# but we keep it here as you had it.
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Streamlit page config with custom title & layout
 st.set_page_config(page_title="📚 AskMyPDF", page_icon="🤖", layout="wide")
@@ -87,11 +89,13 @@ st.markdown("""
 def load_image(image_path):
     """Handle image loading with proper path checking"""
     try:
+        # Check if the file exists in the relative path (common in deployed apps)
         if Path(image_path).exists():
             return image_path
-        return "https://via.placeholder.com/150"
+        # Use a placeholder if the local image is not found
+        return "https://placehold.co/150x150/1E1E1E/00C853?text=Image"
     except:
-        return "https://via.placeholder.com/150"
+        return "https://placehold.co/150x150/1E1E1E/00C853?text=Image"
 
 def clean_table_data(table):
     """Clean and process extracted table data with proper column handling"""
@@ -109,7 +113,14 @@ def clean_table_data(table):
         # Clean column headers
         cols = []
         count = {}
-        for idx, col in enumerate(df.columns):
+        # Use the first non-None row as column headers if they are None/empty
+        header_row = df.iloc[0].values if not df.empty and any(df.iloc[0].notna()) else [f"Column_{i}" for i in range(len(df.columns))]
+        
+        # If the first row was used as header, drop it from the data
+        if not df.empty and all(df.iloc[0].astype(str) == header_row.astype(str)):
+             df = df.iloc[1:].reset_index(drop=True)
+
+        for idx, col in enumerate(header_row):
             col_name = str(col) if (col is not None and str(col).strip() != "") else f"Column_{idx}"
             
             # Handle duplicates
@@ -138,6 +149,7 @@ def extract_pdf_content(pdf_docs):
     
     for pdf in pdf_docs:
         try:
+            # pdfplumber reads the file object
             with pdfplumber.open(pdf) as pdf_reader:
                 for page in pdf_reader.pages:
                     # Extract text
@@ -158,11 +170,17 @@ def extract_pdf_content(pdf_docs):
     return text_content, tables_content
 
 def get_text_chunks(text):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=50000, chunk_overlap=1000)
+    # Split text into chunks suitable for embedding
+    # The current chunk size (50000) is very large and should be optimized for embedding limits (usually 2048 to 8192 tokens)
+    # Reducing to a more standard chunk size of 1000 for robustness
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     return text_splitter.split_text(text)
 
 def get_vector_store(text_chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    # --- FIX APPLIED HERE ---
+    # Changed model="models/embedding-001" to the current recommended model for embeddings
+    embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
+    # This is the line where the error was occurring
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
@@ -171,23 +189,25 @@ def get_conversational_chain():
     Answer the question with details from the provided context. If the answer is not in the context, reply:
     "❌ Answer is not available in the provided documents."
     
-    **Context:** 
-    {context}
+    **Context:** {context}
     
-    **User Question:** 
-    {question}
+    **User Question:** {question}
 
     **Response:**
     """
     
-    # Using gemini-1.5-flash (free model)
+    # Using gemini-2.5-flash (an excellent model for QA)
     model = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     return load_qa_chain(model, chain_type="stuff", prompt=prompt)
 
 def user_input(user_question):
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        # --- FIX APPLIED HERE ---
+        # Ensure loading the index uses the same, correct embedding model
+        embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
+        
+        # allow_dangerous_deserialization=True is necessary for FAISS.load_local in Streamlit/hosted environments
         new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
         docs = new_db.similarity_search(user_question)
 
@@ -211,7 +231,7 @@ def user_input(user_question):
 
 # Sidebar for file uploads
 with st.sidebar:
-    # Use absolute path for images
+    # Use absolute path for images (or fallbacks)
     robot_img = load_image(os.path.join("img", "Robot.jpg"))
     profile_img = load_image(os.path.join("img", "gkj.png"))
     
@@ -227,18 +247,24 @@ with st.sidebar:
                 
                 if not raw_text and not tables:
                     st.warning("No extractable content found in documents")
+                    # Clear processed state to prevent main UI from showing
+                    st.session_state['processed'] = False 
                     st.stop()
                 
                 # Process text for vector store
                 text_chunks = get_text_chunks(raw_text)
-                get_vector_store(text_chunks)
                 
-                # Store extracted content
-                st.session_state['extracted_text'] = raw_text
-                st.session_state['extracted_tables'] = tables
-                st.session_state['processed'] = True
-                
-                st.success("✅ Documents processed successfully!")
+                try:
+                    get_vector_store(text_chunks)
+                    st.session_state['extracted_text'] = raw_text
+                    st.session_state['extracted_tables'] = tables
+                    st.session_state['processed'] = True
+                    st.success("✅ Documents processed successfully! You can now ask questions.")
+                except Exception as e:
+                    # Catch the embedding failure and provide specific guidance
+                    st.error(f"Error during vector store creation (Embedding Failed): {str(e)}")
+                    st.warning("Please check your GEMINI_API_KEY and ensure your account has sufficient quota for the embedding model (text-embedding-004).")
+                    st.session_state['processed'] = False # Reset state on failure
         else:
             st.warning("Please upload PDF files first!")
 
@@ -260,9 +286,9 @@ if st.session_state.get('processed', False):
         if 'extracted_text' in st.session_state and st.session_state.extracted_text:
             with st.expander("📝 View Extracted Text", expanded=False):
                 st.text_area("Text Content", 
-                            value=st.session_state.extracted_text, 
-                            height=300,
-                            label_visibility="collapsed")
+                             value=st.session_state.extracted_text, 
+                             height=300,
+                             label_visibility="collapsed")
         
         # Display tables
         if 'extracted_tables' in st.session_state and st.session_state.extracted_tables:
