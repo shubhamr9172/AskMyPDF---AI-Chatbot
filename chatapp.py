@@ -171,15 +171,13 @@ def extract_pdf_content(pdf_docs):
 
 def get_text_chunks(text):
     # Split text into chunks suitable for embedding
-    # The current chunk size (50000) is very large and should be optimized for embedding limits (usually 2048 to 8192 tokens)
     # Reducing to a more standard chunk size of 1000 for robustness
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     return text_splitter.split_text(text)
 
 def get_vector_store(text_chunks):
-    # --- FIX APPLIED HERE ---
-    # Changed model="models/embedding-001" to the current recommended model for embeddings
-    embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
+    # --- FIX APPLIED HERE: Using the full model resource path ---
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
     # This is the line where the error was occurring
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
@@ -203,9 +201,8 @@ def get_conversational_chain():
 
 def user_input(user_question):
     try:
-        # --- FIX APPLIED HERE ---
-        # Ensure loading the index uses the same, correct embedding model
-        embeddings = GoogleGenerativeAIEmbeddings(model="text-embedding-004")
+        # --- FIX APPLIED HERE: Using the full model resource path ---
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
         
         # allow_dangerous_deserialization=True is necessary for FAISS.load_local in Streamlit/hosted environments
         new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
@@ -263,7 +260,7 @@ with st.sidebar:
                 except Exception as e:
                     # Catch the embedding failure and provide specific guidance
                     st.error(f"Error during vector store creation (Embedding Failed): {str(e)}")
-                    st.warning("Please check your GEMINI_API_KEY and ensure your account has sufficient quota for the embedding model (text-embedding-004).")
+                    st.warning("Please check your GEMINI_API_KEY and ensure your account has sufficient quota for the embedding model (models/text-embedding-004).")
                     st.session_state['processed'] = False # Reset state on failure
         else:
             st.warning("Please upload PDF files first!")
