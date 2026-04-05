@@ -1,132 +1,172 @@
-# **📚 AskMyPDF - AI Chatbot 🤖**  
+# **📚 AskMyPDF — AI Chatbot 🤖**
 
-### **Chat Seamlessly with Multiple PDFs!**  
-Transform how you interact with PDFs using **Langchain**, **Google Gemini Pro**, and **FAISS Vector DB**!  
-Upload multiple PDFs, extract insights, and chat with them in real-time. 🚀✨  
+### **Chat Seamlessly with Multiple PDFs!**
+Transform how you interact with PDFs using **LangChain**, **Google Gemini**, and **FAISS Vector DB**!
+Upload multiple PDFs, extract insights — including tables — and chat with them in real-time. 🚀✨
 
-🔗 **[Try the Demo on Streamlit!](https://askmypdf1.streamlit.app/)**  
-
----
-
-## **📝 About AskMyPDF**  
-
-AskMyPDF is a **Streamlit-powered AI chatbot** that lets you upload multiple PDF files and engage in conversations with their content.  
-Using **advanced AI models**, it extracts, processes, and understands PDF data, providing **instant and accurate responses** to your questions.  
+🔗 **[Try the Live Demo on Streamlit!](https://askmypdf1.streamlit.app/)**
 
 ---
 
-## **🎯 How It Works**  
+## **📝 About AskMyPDF**
+
+AskMyPDF is a **Streamlit-powered Retrieval-Augmented Generation (RAG) chatbot** that lets you upload multiple PDF files and engage in natural-language conversations with their content.
+
+Using **Google Gemini Pro** for embeddings and answer generation, **FAISS** for local vector search, and **pdfplumber** for rich PDF extraction (including tables), it provides **instant and accurate responses** to your questions — grounded entirely in the documents you upload.
+
+---
+
+## **🎯 How It Works**
 
 ### **📌 Step-by-Step Process**
-1️⃣ **Upload PDFs** – Drag and drop multiple PDF files into the app.  
-2️⃣ **Text Extraction** – The app extracts text from all uploaded files.  
-3️⃣ **Text Chunking** – Documents are divided into meaningful, searchable chunks.  
-4️⃣ **AI Processing** – Google's **Gemini Pro** generates vector embeddings.  
-5️⃣ **Similarity Search** – The app finds the most relevant text chunks.  
-6️⃣ **Response Generation** – AI formulates an intelligent response to your query!  
+1️⃣ **Upload PDFs** – Drag and drop multiple PDF files into the sidebar.
+2️⃣ **Text & Table Extraction** – `pdfplumber` extracts both plain text and structured tables from every page.
+3️⃣ **Smart Text Chunking** – Documents are split into overlapping 1000-character chunks (200-char overlap) for context preservation.
+4️⃣ **Vector Embeddings** – Google's **`gemini-embedding-001`** model converts each chunk into a vector embedding.
+5️⃣ **FAISS Index** – Embeddings are stored in a local **FAISS** vector index, persisted to disk.
+6️⃣ **Similarity Search** – On each question, the top-4 most relevant chunks are retrieved.
+7️⃣ **Response Generation** – **`gemini-2.5-flash`** synthesises a grounded answer from the retrieved context.
 
-🖼️ **Architecture Overview:**  
-![AskMyPDF Chatbot Diagram](img/Architecture.jpg)  
+### **🗺️ Architecture Flow**
 
----
-
-## **🚀 Key Features**  
-
-✅ **Multi-Document Conversational AI** – Chat with multiple PDFs at once.  
-✅ **Supports PDF & TXT Files** – Upload and process documents easily.  
-✅ **Smart Adaptive Chunking** – Dynamic text segmentation for improved accuracy.  
-✅ **Powered by AI** – Uses **Google Gemini Pro**, **OpenAI GPT-3**, **Anthropic Claude**, and **Llama2**.  
-✅ **Instant Answers** – AI retrieves context-based answers from your PDFs.  
-✅ **Easy-to-Use Interface** – A clean and responsive UI powered by **Streamlit**.  
-
-📌 **Example AI Output:**  
-![AskMyPDF Response](img/LLMframework.jpg)  
-
----
-
-## **🔧 Installation & Setup**  
-
-### **1️⃣ Clone the Repository**  
-```sh
-git clone https://github.com/YOUR_GITHUB_USERNAME/AskMyPDF.git
-cd AskMyPDF
+```
+PDF Files
+  ↓ pdfplumber
+Text + Tables
+  ↓ RecursiveCharacterTextSplitter (1000 chars / 200 overlap)
+Text Chunks
+  ↓ gemini-embedding-001
+Vector Embeddings
+  ↓ FAISS (saved to faiss_index/)
+Vector Index
+  ↑ User Question → similarity_search → Top-4 Chunks
+  ↓ Context + Question → PromptTemplate
+LLM Chain (gemini-2.5-flash, temp=0.3)
+  ↓ StrOutputParser
+Answer → Streamlit Chat UI + Expandable Source Passages
 ```
 
-### **2️⃣ Install Required Dependencies**  
+---
+
+## **🚀 Key Features**
+
+✅ **Multi-PDF Conversational AI** – Chat with multiple PDFs simultaneously.
+✅ **Table Extraction** – Extracts and displays structured tables from PDFs using `pdfplumber`.
+✅ **Smart Adaptive Chunking** – Overlapping text segmentation for improved retrieval accuracy.
+✅ **Powered by Google Gemini** – Uses `gemini-embedding-001` for embeddings and `gemini-2.5-flash` for answers.
+✅ **FAISS Local Vector Store** – Fast, persistent similarity search — no re-embedding on page refresh.
+✅ **Source Passage Viewer** – Every answer shows expandable source passages for full transparency.
+✅ **Premium Dark UI** – Custom Streamlit design with dark mode, gold accents, and smooth animations.
+
+---
+
+## **🔧 Installation & Setup**
+
+### **Prerequisites**
+- Python 3.8+
+- A Google API Key with Gemini access → [Get one here](https://makersuite.google.com/app/apikey)
+
+### **1️⃣ Clone the Repository**
+```sh
+git clone https://github.com/shubhamr9172/AskMyPDF---AI-Chatbot.git
+cd AskMyPDF---AI-Chatbot
+```
+
+### **2️⃣ Install Required Dependencies**
 ```sh
 pip install -r requirements.txt
 ```
 
-### **3️⃣ Set Up API Key**  
-Get a Google API key from [Google MakerSuite](https://makersuite.google.com/app/apikey).  
-Create a `.env` file in the root directory and add:  
+### **3️⃣ Set Up API Key**
+Create a `.env` file in the project root and add:
 ```
 GOOGLE_API_KEY=<your-api-key-here>
 ```
 
-### **4️⃣ Run the Application**  
+### **4️⃣ Run the Application**
 ```sh
-streamlit run app.py
+streamlit run chatapp.py
+```
+> The app runs on `http://localhost:8501` by default. The `faiss_index/` directory is created automatically on first document processing.
+
+---
+
+## **💡 How to Use**
+
+1️⃣ **Launch the App** – Run `streamlit run chatapp.py`.
+2️⃣ **Upload PDFs** – Drag and drop multiple PDF files into the sidebar.
+3️⃣ **Process Files** – Click **"Analyse Documents"** to extract text, tables, and build the vector index.
+4️⃣ **Ask Questions** – Type your query in the chatbox and get AI-powered, context-grounded responses.
+5️⃣ **Inspect Sources** – Expand **"View source passages"** to see exactly which parts of your PDFs were used.
+
+---
+
+## **📌 Tech Stack & Dependencies**
+
+| 📦 Library / Service | 🔹 Role |
+|---|---|
+| **Streamlit** | Web UI framework |
+| **Google Gemini** (`gemini-2.5-flash`) | LLM for answer generation |
+| **Google Gemini** (`gemini-embedding-001`) | Vector embedding model |
+| **LangChain** | RAG pipeline, prompt chaining, LCEL |
+| **FAISS** | Local vector store for similarity search |
+| **pdfplumber** | Rich PDF text & table extraction |
+| **PyPDF2** | Fallback PDF parsing |
+| **python-dotenv** | Secure API key management |
+| **pandas / numpy** | Table cleaning and display |
+
+---
+
+## **📂 Project Structure**
+
+```
+AskMyPDF---AI-Chatbot/
+├── chatapp.py            ← Main application entry point
+├── requirements.txt      ← Python dependencies
+├── .env                  ← API key storage (GOOGLE_API_KEY) — not committed
+├── faiss_index/          ← Auto-generated FAISS vector index (persisted to disk)
+├── img/                  ← Architecture & demo screenshots
+├── docs/                 ← Supporting documentation assets
+├── .devcontainer/        ← Dev container configuration
+├── AskMyPdf_Workflow_Documentation.md  ← Full technical workflow documentation
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## **💡 How to Use**  
+## **🎯 Demo & Deployment**
 
-1️⃣ **Launch the App** – Run `streamlit run app.py` to start the chatbot.  
-2️⃣ **Upload PDFs** – Drag and drop multiple PDF files into the sidebar.  
-3️⃣ **Process Files** – Click **"Process Documents"** to extract and prepare data.  
-4️⃣ **Ask Questions** – Type your queries in the chatbox and get AI-powered responses.  
-5️⃣ **Enjoy AI-Powered Insights!** 🚀  
+Want to try AskMyPDF without any setup? 🚀
 
-🖼️ **Example Conversation:**  
-![AskMyPDF Chat](img/LLMApp.jpg)  
+🔗 **[Try the Live App on Streamlit!](https://askmypdf1.streamlit.app/)**
 
 ---
 
-## **📌 Requirements**  
+## **🛠️ Future Enhancements**
 
-| 📦 Dependency | 🔹 Purpose |
-|--------------|-----------|
-| **Streamlit** | Web UI framework |
-| **Google Generative AI** | AI-powered responses |
-| **Langchain** | Conversational AI processing |
-| **FAISS** | Vector search for document retrieval |
-| **PyPDF2** | Extract text from PDF files |
-| **python-dotenv** | Manage API keys securely |
+🔹 **Chat history & memory** – Persist conversation context across turns.
+🔹 **Streaming responses** – Progressive token rendering with `stream=True`.
+🔹 **DOCX & PPTX support** – Expand beyond PDF documents.
+🔹 **Table-aware embeddings** – Serialize table content and embed alongside PDF text.
+🔹 **Named FAISS indices** – Support multiple document sets without overwriting.
+🔹 **Authentication** – Multi-user login for shared deployments.
 
 ---
 
-## **🎯 Demo & Deployment**  
+## **📜 License**
 
-Want to try AskMyPDF without setup? 🚀  
-
-🔗 **[Try the Live App on Streamlit!](https://askmypdf1.streamlit.app/)**  
+This project is licensed under the **MIT License**. See `LICENSE` for details.
 
 ---
 
-## **🛠️ Future Enhancements**  
+## **🚀 Connect with Me!**
 
-🔹 Support for **DOCX & PPTX** files 📄  
-🔹 Integration with **Voice Assistants** 🎙️  
-🔹 Advanced **Summarization & Report Generation** 📊  
+📌 **If you find this project useful, drop a ⭐ on GitHub!**
 
----
-
-## **📜 License**  
-This project is licensed under the **MIT License**. See `LICENSE` for details.  
+[![GitHub](https://img.shields.io/badge/GitHub-shubhamr9172-blue?logo=github&logoColor=white)](https://github.com/shubhamr9172/)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Shubham%20Vivek%20Reddy-blue?logo=linkedin)](https://www.linkedin.com/in/shubham-vivek-reddy/)
 
 ---
 
-## **🚀 Connect with Me!**  
-
-📌 **If you find this project useful, drop a ⭐ on GitHub!**  
-
-[![GitHub](https://img.shields.io/badge/GitHub-AskMyPDF-blue?logo=github&logoColor=white)](https://github.com/yashkusumkar02/)  
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?logo=linkedin)](https://www.linkedin.com/in/suyash-kusumkar/)  
-
----
-
-### **🔥 Ready to Chat with Your PDFs? Try AskMyPDF Now!** 🚀  
-
-Let me know if you'd like any further customization! 😊
+### **🔥 Ready to Chat with Your PDFs? Try AskMyPDF Now!** 🚀
