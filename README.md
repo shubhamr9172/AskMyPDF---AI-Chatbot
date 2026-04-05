@@ -63,44 +63,58 @@ The entire process from document upload to answering a query:
 
 ## **🔧 Complete Setup & Execution Guide**
 
-Follow the steps below to setup the project perfectly on your local machine.
+Follow the steps below to setup the project perfectly on your local machine using Windows Python commands.
 
 ### **Step 1: Clone the Repository**
 Open your terminal and pull the project source code locally to your machine.
 ```bash
-# Clone the remote codebase to your machine
+# Clone the codebase to your machine (ensure you clone from your updated repository)
 git clone https://github.com/shubhamr9172/AskMyPDF---AI-Chatbot.git
 
 # Move into the newly created project directory
-cd AskMyPDF---AI-Chatbot
+cd AskMyPdf_Multi_PDF_ChatApp
 ```
 
 ### **Step 2: Install Required Dependencies**
-It is highly recommended to use a virtual environment, but system installation works fine as well. Install all python requirements automatically.
+Install all python requirements using the `py` or `python` module execution.
 ```bash
-# Install parsing tools, langchain wrappers, and Streamlit
-pip install -r requirements.txt
+# Option A: Install from requirements.txt
+py -m pip install -r requirements.txt
+
+# Option B: Install packages manually step-by-step
+python -m pip install langchain-text-splitters
+python -m pip install langchain-community
+python -m pip install langchain-core
+python -m pip install langchain
+
+# Option C: Combined manual installation
+python -m pip install streamlit PyPDF2 pdfplumber langchain langchain-core langchain-community langchain-google-genai langchain-text-splitters faiss-cpu python-dotenv pandas numpy pathlib
 ```
 
 ### **Step 3: Setup Google Gemini API Keys**
-You need an active Google MakerSuite / Google AI Studio token to interact with the LLMs.
-1. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. Inside your project's root folder (`AskMyPDF---AI-Chatbot/`), create a brand new file named strictly: `.env`
-3. Open `.env` in any text editor and paste the following line, replacing the placeholder with your actual key:
+You need an active Google AI Studio token to interact with the LLMs.
+1. Get a free API key at [Google AI Studio](https://aistudio.google.com/app/api-keys?project=gen-lang-client-0174880918).
+2. Inside your project's root folder, create a new file named exactly: `.env`
+3. Add the following line to the file, replacing the placeholder with your key:
 ```env
 # Do not add quotes around the key string
 GOOGLE_API_KEY=YOUR_ACTUAL_API_KEY_HERE
 ```
 
 ### **Step 4: Launch the Streamlit Server**
-Start the main application. 
-*(Note: If it's your first time running, Streamlit might ask for your email. You can leave it blank and hit Enter).*
+Start the main application using the Python module execution command.
 ```bash
 # Execute the Streamlit runner targeting the main python application
-streamlit run chatapp.py
+python -m streamlit run chatapp.py
 ```
 > The dashboard will instantly become available via **`http://localhost:8501`** in your browser.
-> *Note: By clicking `Process Documents`, the application will create a default folder called `faiss_index/` in your root file tree locally.*
+
+### **Step 5: Verify Google Generative AI Configuration (Optional)**
+You can run this quick test script in your terminal to ensure your API key is correctly configured and working:
+```bash
+# Replace YOUR_API_KEY with your actual Gemini API key
+python -c "import google.generativeai as genai; genai.configure(api_key='YOUR_API_KEY'); [print(m.name, m.supported_generation_methods) for m in genai.list_models()]"
+```
 
 ---
 
